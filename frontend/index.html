@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TobaccoNet — WiFi Subscription Manager</title>
+<style>
+  :root {
+    --xl-green: #217346;
+    --xl-green-light: #2e8b57;
+    --xl-green-dark: #185a38;
+    --xl-green-faint: #1a3a28;
+    --xl-header: #1e6b3c;
+    --xl-row-alt: #111f17;
+    --xl-row-hover: #162b1f;
+    --xl-border: #2d4a35;
+    --xl-border-light: #3a5c45;
+    --xl-bg: #0d1a12;
+    --xl-surface: #0f1e15;
+    --xl-surface2: #142619;
+    --xl-surface3: #19301f;
+    --xl-text: #d4e8d8;
+    --xl-text-dim: #7aab86;
+    --xl-text-muted: #4a7055;
+    --xl-accent: #4caf6e;
+    --xl-accent2: #3d9960;
+    --xl-gold: #d4a017;
+    --xl-red: #c0392b;
+    --xl-red-dim: #922b21;
+    --xl-orange: #d4820a;
+    --xl-blue: #2980b9;
+    --xl-ribbon: #1a4d2e;
+    --xl-tab-active: #217346;
+    --xl-tab-inactive: #122118;
+    --radius: 3px;
+    --radius-md: 5px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Calibri','Segoe UI',sans-serif; background: var(--xl-bg); color: var(--xl-text); font-size: 14px; min-height: 100vh; overflow-x: hidden; }
+
+  /* TITLE BAR */
+  #title-bar { background: #0a1209; border-bottom: 1px solid var(--xl-border); display: flex; align-items: center; justify-content: space-between; padding: 0 8px; height: 28px; font-size: 12px; color: var(--xl-text-dim); }
+  #title-bar-center { font-weight: 600; color: var(--xl-text); letter-spacing: 0.3px; }
+  #title-bar-right { display: flex; align-items: center; gap: 8px; }
+
+  /* RIBBON */
+  #ribbon { background: var(--xl-ribbon); border-bottom: 2px solid var(--xl-tab-active); padding: 0 8px; }
+  #ribbon-tabs { display: flex; gap: 2px; }
+  .ribbon-tab { padding: 6px 14px; font-size: 12px; cursor: pointer; color: var(--xl-text-dim); border-bottom: 3px solid transparent; transition: all 0.15s; font-weight: 500; white-space: nowrap; }
+  .ribbon-tab:hover { color: var(--xl-text); background: rgba(255,255,255,0.04); }
+  .ribbon-tab.active { color: #b7f5cc; border-bottom: 3px solid var(--xl-accent); background: rgba(33,115,70,0.18); }
+  #ribbon-content { display: flex; align-items: center; gap: 4px; padding: 5px 4px; flex-wrap: wrap; }
+  .ribbon-btn { background: var(--xl-surface2); border: 1px solid var(--xl-border); color: var(--xl-text); padding: 4px 12px; font-size: 12px; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; gap: 5px; transition: all 0.15s; font-family: inherit; white-space: nowrap; }
+  .ribbon-btn:hover { background: var(--xl-surface3); border-color: var(--xl-accent2); color: var(--xl-accent); }
+  .ribbon-btn.primary { background: var(--xl-green-dark); border-color: var(--xl-accent2); color: #c8ffdc; font-weight: 600; }
+  .ribbon-btn.primary:hover { background: var(--xl-green); }
+  .ribbon-btn.danger { border-color: var(--xl-red-dim); color: #f1948a; }
+  .ribbon-btn.danger:hover { background: #2c1010; border-color: var(--xl-red); }
+  .ribbon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ribbon-group { display: flex; align-items: center; gap: 4px; border-right: 1px solid var(--xl-border); padding-right: 8px; margin-right: 4px; }
+  .ribbon-group:last-child { border-right: none; }
+
+  /* FORMULA BAR */
+  #formula-bar { background: var(--xl-surface); border-bottom: 1px solid var(--xl-border); display: flex; align-items: center; padding: 3px 8px; gap: 8px; height: 26px; font-size: 12px; }
+  .cell-ref { background: var(--xl-surface2); border: 1px solid var(--xl-border); color: var(--xl-text-dim); padding: 1px 8px; width: 70px; font-size: 11px; border-radius: var(--radius); }
+  .fx-label { color: var(--xl-text-muted); font-style: italic; font-size: 12px; }
+  .formula-content { flex: 1; color: var(--xl-text-dim); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* MAIN */
+  #main { display: flex; height: calc(100vh - 110px); }
+  #sidebar { width: 200px; background: var(--xl-surface); border-right: 1px solid var(--xl-border); display: flex; flex-direction: column; flex-shrink: 0; }
+  #sidebar-header { background: var(--xl-green-dark); padding: 8px 10px; font-size: 11px; font-weight: 700; color: #c8ffdc; letter-spacing: 0.4px; text-transform: uppercase; border-bottom: 1px solid var(--xl-border); }
+  .sidebar-item { padding: 7px 10px; cursor: pointer; border-bottom: 1px solid rgba(45,74,53,0.3); color: var(--xl-text-dim); font-size: 12px; display: flex; align-items: center; gap: 6px; transition: all 0.12s; }
+  .sidebar-item:hover { background: var(--xl-row-hover); color: var(--xl-text); }
+  .sidebar-item.active { background: var(--xl-green-faint); color: var(--xl-accent); border-left: 3px solid var(--xl-accent); padding-left: 7px; }
+  .sidebar-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  #content { flex: 1; overflow: auto; background: var(--xl-bg); }
+
+  /* SHEET TABS */
+  #sheet-tabs { position: fixed; bottom: 0; left: 0; right: 0; background: var(--xl-surface); border-top: 1px solid var(--xl-border); display: flex; align-items: center; height: 26px; padding: 0 8px; gap: 2px; z-index: 100; overflow-x: auto; }
+  .sheet-tab { padding: 3px 14px; font-size: 11px; cursor: pointer; border: 1px solid var(--xl-border); background: var(--xl-tab-inactive); color: var(--xl-text-dim); border-radius: var(--radius) var(--radius) 0 0; border-bottom: none; white-space: nowrap; transition: all 0.12s; }
+  .sheet-tab:hover { background: var(--xl-surface2); color: var(--xl-text); }
+  .sheet-tab.active { background: var(--xl-tab-active); color: #c8ffdc; font-weight: 600; }
+
+  /* SECTION HEADER */
+  .section-header { background: var(--xl-green-dark); padding: 8px 16px; border-bottom: 2px solid var(--xl-accent); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+  .section-title { font-size: 13px; font-weight: 700; color: #c8ffdc; letter-spacing: 0.3px; }
+
+  /* TABLE */
+  .xl-table-wrap { overflow-x: auto; padding-bottom: 8px; }
+  .xl-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 800px; }
+  .xl-table thead tr { background: var(--xl-header); position: sticky; top: 44px; z-index: 40; }
+  .xl-table thead th { padding: 6px 10px; text-align: left; font-weight: 700; color: #c8ffdc; border: 1px solid var(--xl-border); font-size: 11px; letter-spacing: 0.2px; white-space: nowrap; }
+  .xl-table thead th.row-num { width: 36px; text-align: center; background: #0f2e1b; }
+  .xl-table tbody tr { border-bottom: 1px solid rgba(45,74,53,0.4); transition: background 0.1s; cursor: pointer; }
+  .xl-table tbody tr:nth-child(even) { background: var(--xl-row-alt); }
+  .xl-table tbody tr:hover { background: var(--xl-row-hover); }
+  .xl-table td { padding: 5px 10px; border: 1px solid rgba(45,74,53,0.25); color: var(--xl-text); white-space: nowrap; vertical-align: middle; }
+  .xl-table td.row-num { text-align: center; color: var(--xl-text-muted); background: var(--xl-surface); font-size: 10px; }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 10px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+  .badge-ok      { background: #0d3d1f; color: #5dde8a; border: 1px solid #1a6635; }
+  .badge-warn    { background: #3d2700; color: #f0a500; border: 1px solid #7a5200; }
+  .badge-urgent  { background: #3d0d0d; color: #f05050; border: 1px solid #7a1a1a; }
+  .badge-expired { background: #2a0a0a; color: #c0392b; border: 1px solid #6e1a1a; }
+  .badge-seasonal{ background: #0a2040; color: #5daaff; border: 1px solid #1a4080; }
+  .badge-active  { background: #1a3a20; color: #7dde9a; border: 1px solid #2d6640; }
+
+  /* SUMMARY CARDS */
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 8px; padding: 12px 16px; background: var(--xl-surface); border-bottom: 1px solid var(--xl-border); }
+  .summary-card { background: var(--xl-surface2); border: 1px solid var(--xl-border); border-radius: var(--radius-md); padding: 10px 12px; border-left: 3px solid var(--xl-accent); }
+  .summary-card.warn   { border-left-color: var(--xl-gold); }
+  .summary-card.danger { border-left-color: var(--xl-red); }
+  .summary-card.info   { border-left-color: var(--xl-blue); }
+  .summary-label { font-size: 10px; color: var(--xl-text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  .summary-value { font-size: 22px; font-weight: 700; color: var(--xl-accent); line-height: 1; }
+  .summary-card.warn .summary-value   { color: var(--xl-gold); }
+  .summary-card.danger .summary-value { color: #f05050; }
+  .summary-card.info .summary-value   { color: #5daaff; }
+  .summary-sub { font-size: 10px; color: var(--xl-text-dim); margin-top: 3px; }
+
+  /* MODALS */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+  .modal { background: var(--xl-surface); border: 1px solid var(--xl-border-light); border-radius: var(--radius-md); width: 600px; max-width: 95vw; max-height: 90vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.7); }
+  .modal-header { background: var(--xl-green-dark); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--xl-border); position: sticky; top: 0; z-index: 10; }
+  .modal-title { font-size: 14px; font-weight: 700; color: #c8ffdc; }
+  .modal-close { background: none; border: none; color: var(--xl-text-dim); font-size: 18px; cursor: pointer; padding: 2px 6px; border-radius: var(--radius); line-height: 1; }
+  .modal-close:hover { background: rgba(255,255,255,0.08); color: var(--xl-text); }
+  .modal-body { padding: 16px; }
+  .modal-footer { padding: 10px 16px; border-top: 1px solid var(--xl-border); display: flex; justify-content: flex-end; gap: 8px; background: var(--xl-surface2); position: sticky; bottom: 0; }
+
+  /* FORMS */
+  .form-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-group  { display: flex; flex-direction: column; gap: 4px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 11px; color: var(--xl-text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+  input, select, textarea { background: var(--xl-surface2); border: 1px solid var(--xl-border); color: var(--xl-text); padding: 6px 10px; font-size: 12px; border-radius: var(--radius); font-family: inherit; transition: border-color 0.15s; width: 100%; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--xl-accent); background: var(--xl-surface3); box-shadow: 0 0 0 2px rgba(76,175,110,0.15); }
+  select option { background: var(--xl-surface2); }
+  textarea { resize: vertical; min-height: 60px; }
+  .form-divider { grid-column: 1/-1; border: none; border-top: 1px solid var(--xl-border); margin: 4px 0; }
+  .form-section-label { grid-column: 1/-1; font-size: 11px; font-weight: 700; color: var(--xl-accent); text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 0 2px; border-bottom: 1px solid var(--xl-border); margin-bottom: 2px; }
+
+  /* BUDGET */
+  .budget-bar-row  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .budget-bar-label{ width: 150px; font-size: 11px; color: var(--xl-text-dim); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .budget-bar-track{ flex: 1; height: 18px; background: var(--xl-surface3); border-radius: 2px; overflow: hidden; border: 1px solid var(--xl-border); }
+  .budget-bar-fill { height: 100%; display: flex; align-items: center; padding-left: 6px; font-size: 10px; font-weight: 700; transition: width 0.5s; }
+  .budget-bar-val  { width: 80px; font-size: 11px; color: var(--xl-text); text-align: right; }
+  .progress-bar    { width: 100%; height: 8px; background: var(--xl-surface3); border-radius: 2px; overflow: hidden; }
+  .progress-fill   { height: 100%; border-radius: 2px; transition: width 0.3s; }
+  .progress-fill.ok   { background: var(--xl-accent); }
+  .progress-fill.warn { background: var(--xl-gold); }
+  .progress-fill.danger { background: var(--xl-red); }
+
+  /* ALERTS */
+  .alert-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: var(--radius-md); margin-bottom: 6px; border: 1px solid; }
+  .alert-item.danger { background: #1e0808; border-color: #7a1a1a; }
+  .alert-item.warn   { background: #1e1000; border-color: #7a5200; }
+  .alert-item.info   { background: #080e1e; border-color: #1a4080; }
+  .alert-icon  { font-size: 16px; margin-top: 1px; }
+  .alert-title { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+  .alert-item.danger .alert-title { color: #f05050; }
+  .alert-item.warn   .alert-title { color: #f0a500; }
+  .alert-item.info   .alert-title { color: #5daaff; }
+  .alert-text  { font-size: 11px; color: var(--xl-text-dim); }
+
+  /* LOGIN */
+  #login-screen { position: fixed; inset: 0; background: var(--xl-bg); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .login-box { background: var(--xl-surface); border: 1px solid var(--xl-border-light); border-radius: var(--radius-md); padding: 32px; width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  .login-logo { text-align: center; margin-bottom: 24px; }
+  .login-logo-icon { font-size: 40px; margin-bottom: 8px; }
+  .login-logo h1 { font-size: 18px; font-weight: 700; color: var(--xl-accent); letter-spacing: 0.5px; }
+  .login-logo p  { font-size: 11px; color: var(--xl-text-muted); margin-top: 2px; }
+  .user-select-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .user-card { background: var(--xl-surface2); border: 1px solid var(--xl-border); border-radius: var(--radius-md); padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .user-card:hover { border-color: var(--xl-accent); background: var(--xl-green-faint); }
+  .user-card.selected { border-color: var(--xl-accent); background: var(--xl-green-faint); box-shadow: 0 0 0 2px rgba(76,175,110,0.3); }
+  .user-avatar { width: 44px; height: 44px; border-radius: 50%; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; }
+  .user-name { font-size: 12px; font-weight: 600; color: var(--xl-text); }
+  .user-role { font-size: 10px; color: var(--xl-text-muted); }
+  .pin-input { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+  .pin-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--xl-border-light); transition: background 0.2s; }
+  .pin-dot.filled { background: var(--xl-accent); border-color: var(--xl-accent); }
+  #pin-keypad { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 8px; }
+  .pin-key { background: var(--xl-surface2); border: 1px solid var(--xl-border); color: var(--xl-text); padding: 10px; border-radius: var(--radius); cursor: pointer; font-size: 16px; font-weight: 600; font-family: inherit; transition: all 0.1s; text-align: center; }
+  .pin-key:hover { background: var(--xl-surface3); border-color: var(--xl-accent2); }
+  .pin-key:active { transform: scale(0.94); }
+  .pin-error { color: #f05050; font-size: 11px; text-align: center; margin-top: 6px; min-height: 16px; }
+
+  /* STATUS BAR */
+  #status-bar { position: fixed; bottom: 26px; left: 0; right: 0; background: var(--xl-green-dark); border-top: 1px solid var(--xl-border); padding: 2px 12px; font-size: 11px; color: #9fd4b3; display: flex; gap: 16px; align-items: center; z-index: 90; }
+  #status-bar span { border-right: 1px solid var(--xl-border); padding-right: 12px; }
+  #status-bar span:last-child { border-right: none; }
+
+  /* SPINNER */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--xl-border); border-top-color: var(--xl-accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TOAST */
+  #toast { position: fixed; top: 16px; right: 16px; z-index: 9998; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+  .toast-item { background: var(--xl-surface); border: 1px solid var(--xl-border-light); border-radius: var(--radius-md); padding: 10px 14px; font-size: 12px; color: var(--xl-text); min-width: 240px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); animation: toast-in 0.3s ease; border-left: 3px solid var(--xl-accent); pointer-events: auto; }
+  .toast-item.error { border-left-color: var(--xl-red); }
+  .toast-item.warn  { border-left-color: var(--xl-gold); }
+  @keyframes toast-in { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+
+  /* MISC */
+  .empty-state { text-align: center; padding: 40px; color: var(--xl-text-muted); }
+  .text-green { color: var(--xl-accent); }
+  .text-gold  { color: var(--xl-gold); }
+  .text-red   { color: #f05050; }
+  .text-blue  { color: #5daaff; }
+  .text-dim   { color: var(--xl-text-dim); }
+  .fw-bold    { font-weight: 700; }
+  .section-page { display: none; }
+  .section-page.active { display: block; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--xl-surface); }
+  ::-webkit-scrollbar-thumb { background: var(--xl-border); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--xl-accent2); }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🌿</div>
+      <h1>TobaccoNet</h1>
+      <p>WiFi Subscription Manager — Auction Floor</p>
+    </div>
+    <div id="login-loading" style="text-align:center;padding:20px;color:var(--xl-text-muted);font-size:12px;">
+      <div class="spinner" style="margin:0 auto 8px;width:24px;height:24px;"></div>
+      Connecting to server…
+    </div>
+    <div id="login-body" style="display:none;">
+      <div class="user-select-grid" id="user-grid"></div>
+      <div style="text-align:center;font-size:11px;color:var(--xl-text-muted);margin-bottom:10px;" id="selected-user-label">Select a user above</div>
+      <div class="pin-input" id="pin-dots">
+        <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+        <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+      </div>
+      <div id="pin-keypad"></div>
+      <div class="pin-error" id="pin-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ── -->
+<div id="toast"></div>
+
+<!-- ── TITLE BAR ── -->
+<div id="title-bar">
+  <div>🌿 TobaccoNet WiFi Manager</div>
+  <div id="title-bar-center">WiFi Subscription Manager — Tobacco Auction Floor</div>
+  <div id="title-bar-right">
+    <span id="current-user-display" style="color:var(--xl-accent);font-weight:600;"></span>
+    <span id="current-time" style="font-size:11px;"></span>
+    <button class="ribbon-btn" onclick="openSettings()" style="padding:2px 8px;font-size:11px;">⚙ Settings</button>
+    <button class="ribbon-btn danger" onclick="logout()" style="padding:2px 8px;font-size:11px;">⏻ Sign out</button>
+  </div>
+</div>
+
+<!-- ── RIBBON ── -->
+<div id="ribbon">
+  <div id="ribbon-tabs">
+    <div class="ribbon-tab active" onclick="showPage('dashboard')">Home</div>
+    <div class="ribbon-tab" onclick="showPage('subscriptions')">Subscriptions</div>
+    <div class="ribbon-tab" onclick="showPage('budget')">Budget</div>
+    <div class="ribbon-tab" onclick="showPage('reminders')">Reminders</div>
+  </div>
+  <div id="ribbon-content">
+    <div class="ribbon-group">
+      <button class="ribbon-btn primary" onclick="openAddWarehouse()">＋ Warehouse</button>
+      <button class="ribbon-btn primary" onclick="openAddSubscription()">＋ Subscription</button>
+    </div>
+    <div class="ribbon-group">
+      <button class="ribbon-btn" onclick="sendReminderEmails()">✉ Send Reminders</button>
+      <button class="ribbon-btn" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>
+    <div class="ribbon-group">
+      <button class="ribbon-btn" onclick="loadAll()">↻ Refresh</button>
+      <button class="ribbon-btn" onclick="openSettings()">⚙ Settings</button>
+    </div>
+    <div class="ribbon-group">
+      <input style="background:var(--xl-surface2);border:1px solid var(--xl-border);color:var(--xl-text);padding:4px 10px;font-size:12px;border-radius:var(--radius);width:220px;" type="text" placeholder="🔍  Search…" id="global-search" oninput="filterDashTable()">
+    </div>
+  </div>
+</div>
+
+<!-- ── FORMULA BAR ── -->
+<div id="formula-bar">
+  <input class="cell-ref" value="A1" readonly id="cell-ref-display">
+  <span class="fx-label">fx</span>
+  <span class="formula-content" id="formula-display">=TOBACCONET.WAREHOUSE_SUBSCRIPTIONS()</span>
+</div>
+
+<!-- ── MAIN ── -->
+<div id="main">
+  <div id="sidebar">
+    <div id="sidebar-header">📋 Worksheets</div>
+    <div class="sidebar-item active" onclick="showPage('dashboard')"     data-page="dashboard">    <div class="sidebar-dot" style="background:#4caf6e"></div> Dashboard</div>
+    <div class="sidebar-item"        onclick="showPage('warehouses')"    data-page="warehouses">   <div class="sidebar-dot" style="background:#5daaff"></div> Warehouses</div>
+    <div class="sidebar-item"        onclick="showPage('subscriptions')" data-page="subscriptions"><div class="sidebar-dot" style="background:#f0a500"></div> Subscriptions</div>
+    <div class="sidebar-item"        onclick="showPage('budget')"        data-page="budget">       <div class="sidebar-dot" style="background:#c8a0ff"></div> Budget Planner</div>
+    <div class="sidebar-item"        onclick="showPage('reminders')"     data-page="reminders">    <div class="sidebar-dot" style="background:#f05050"></div> Reminders</div>
+    <div class="sidebar-item"        onclick="showPage('providers')"     data-page="providers">    <div class="sidebar-dot" style="background:#7dde9a"></div> ISP Providers</div>
+    <div style="flex:1"></div>
+    <div style="padding:10px;font-size:10px;color:var(--xl-text-muted);border-top:1px solid var(--xl-border);">
+      Season: <span class="text-green fw-bold" id="sb-season-label">—</span><br>
+      <span id="sidebar-season-status"></span>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- DASHBOARD -->
+    <div class="section-page active" id="page-dashboard">
+      <div class="section-header"><span class="section-title">📊 Dashboard</span><span style="font-size:11px;color:var(--xl-text-dim);" id="dash-date"></span></div>
+      <div class="summary-grid" id="summary-cards"></div>
+      <div style="padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--xl-accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">⚠ Upcoming Expirations</div>
+          <div id="upcoming-expirations"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--xl-accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">💰 Monthly Cost by Warehouse</div>
+          <div id="cost-chart"></div>
+        </div>
+      </div>
+      <div style="padding:0 16px 80px;">
+        <div style="font-size:11px;font-weight:700;color:var(--xl-accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📋 All Subscriptions</div>
+        <div class="xl-table-wrap"><table class="xl-table" id="dash-table"><thead><tr></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- WAREHOUSES -->
+    <div class="section-page" id="page-warehouses">
+      <div class="section-header">
+        <span class="section-title">🏭 Warehouses</span>
+        <button class="ribbon-btn primary" onclick="openAddWarehouse()" style="font-size:11px;padding:3px 10px;">＋ Add Warehouse</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:var(--xl-surface);border-bottom:1px solid var(--xl-border);">
+        <input style="background:var(--xl-surface2);border:1px solid var(--xl-border);color:var(--xl-text);padding:4px 10px;font-size:12px;border-radius:var(--radius);max-width:280px;" type="text" placeholder="Search warehouses…" id="wh-search" oninput="renderWarehousesPage()">
+        <span style="font-size:11px;color:var(--xl-text-muted);" id="wh-count"></span>
+      </div>
+      <div class="xl-table-wrap" style="padding:0 0 80px;">
+        <table class="xl-table">
+          <thead><tr><th class="row-num">#</th><th>Code</th><th>Warehouse Name</th><th>Address</th><th>ISP Provider</th><th>Contact</th><th>Subscriptions</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="wh-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SUBSCRIPTIONS -->
+    <div class="section-page" id="page-subscriptions">
+      <div class="section-header">
+        <span class="section-title">📶 Subscriptions</span>
+        <div style="display:flex;gap:6px;">
+          <select id="sub-filter-wh" onchange="renderSubscriptionsPage()" style="width:180px;padding:3px 8px;font-size:11px;background:var(--xl-surface2);border:1px solid var(--xl-border);color:var(--xl-text);border-radius:var(--radius);">
+            <option value="">All Warehouses</option>
+          </select>
+          <select id="sub-filter-status" onchange="renderSubscriptionsPage()" style="width:130px;padding:3px 8px;font-size:11px;background:var(--xl-surface2);border:1px solid var(--xl-border);color:var(--xl-text);border-radius:var(--radius);">
+            <option value="">All Statuses</option>
+            <option value="ok">Active</option>
+            <option value="warn">Expiring Soon</option>
+            <option value="urgent">Urgent</option>
+            <option value="expired">Expired</option>
+          </select>
+          <button class="ribbon-btn primary" onclick="openAddSubscription()" style="font-size:11px;padding:3px 10px;">＋ Add</button>
+        </div>
+      </div>
+      <div class="xl-table-wrap" style="padding:0 0 80px;">
+        <table class="xl-table">
+          <thead><tr><th class="row-num">#</th><th>Warehouse</th><th>ISP</th><th>Plan Type</th><th>$/mo</th><th>Next Expiry</th><th>Pay By</th><th>Season End</th><th>Days Left</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="sub-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BUDGET -->
+    <div class="section-page" id="page-budget">
+      <div class="section-header">
+        <span class="section-title">💰 Season Budget Planner</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:var(--xl-text-dim);">Season End:</span>
+          <input type="date" id="global-season-end" onchange="renderBudgetPage()" style="width:140px;padding:3px 8px;font-size:11px;background:var(--xl-surface2);border:1px solid var(--xl-border);color:var(--xl-text);border-radius:var(--radius);">
+        </div>
+      </div>
+      <div class="summary-grid" id="budget-summary"></div>
+      <div style="padding:12px 16px 6px;"><div style="font-size:11px;font-weight:700;color:var(--xl-accent);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">📊 Cost by Warehouse</div><div id="budget-bar-chart"></div></div>
+      <div class="xl-table-wrap" style="padding:0 0 80px;">
+        <table class="xl-table">
+          <thead><tr><th class="row-num">#</th><th>Warehouse</th><th>ISP</th><th>Monthly</th><th>Season End</th><th>Months Rem.</th><th>Remaining</th><th>YTD Spend</th><th>Progress</th></tr></thead>
+          <tbody id="budget-tbody"></tbody>
+        </table>
+        <div style="background:var(--xl-surface2);border-top:2px solid var(--xl-accent);padding:8px 16px;display:flex;gap:32px;">
+          <span style="font-size:12px;font-weight:700;color:var(--xl-accent);">TOTALS</span>
+          <span id="budget-total-monthly" style="font-size:12px;"></span>
+          <span id="budget-total-remaining" style="font-size:12px;"></span>
+          <span id="budget-total-ytd" style="font-size:12px;"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- REMINDERS -->
+    <div class="section-page" id="page-reminders">
+      <div class="section-header">
+        <span class="section-title">🔔 Reminders & Alerts</span>
+        <button class="ribbon-btn primary" onclick="sendReminderEmails()" style="font-size:11px;padding:3px 10px;">✉ Send Email Reminders</button>
+      </div>
+      <div style="padding:12px 16px;">
+        <div style="font-size:11px;color:var(--xl-text-muted);margin-bottom:12px;">Finance email: <strong id="finance-email-display" style="color:var(--xl-accent)">—</strong> &nbsp;|&nbsp; Reminder threshold: <strong style="color:var(--xl-gold);" id="reminder-days-display">7 days</strong></div>
+      </div>
+      <div style="padding:0 16px 80px;" id="alert-panel"></div>
+    </div>
+
+    <!-- PROVIDERS -->
+    <div class="section-page" id="page-providers">
+      <div class="section-header">
+        <span class="section-title">🌐 ISP Providers</span>
+        <button class="ribbon-btn primary" onclick="openAddProvider()" style="font-size:11px;padding:3px 10px;">＋ Add Provider</button>
+      </div>
+      <div class="xl-table-wrap" style="padding:0 0 80px;">
+        <table class="xl-table">
+          <thead><tr><th class="row-num">#</th><th>Provider Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>Website</th><th>Plans</th><th>Actions</th></tr></thead>
+          <tbody id="prov-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div id="status-bar">
+  <span id="sb-user">User: —</span>
+  <span id="sb-warehouses">Warehouses: —</span>
+  <span id="sb-subs">Subscriptions: —</span>
+  <span id="sb-expiring">Expiring ≤7d: —</span>
+  <span id="sb-total">Monthly: —</span>
+  <span style="margin-left:auto;border-right:none!important;">TobaccoNet v2.1 | Powered by FastAPI</span>
+</div>
+
+<!-- SHEET TABS -->
+<div id="sheet-tabs">
+  <div class="sheet-tab active"  onclick="showPage('dashboard')">Dashboard</div>
+  <div class="sheet-tab"         onclick="showPage('warehouses')">Warehouses</div>
+  <div class="sheet-tab"         onclick="showPage('subscriptions')">Subscriptions</div>
+  <div class="sheet-tab"         onclick="showPage('budget')">Budget</div>
+  <div class="sheet-tab"         onclick="showPage('reminders')">Reminders</div>
+  <div class="sheet-tab"         onclick="showPage('providers')">ISP Providers</div>
+</div>
+
+<div id="modal-container"></div>
+
+<script>
+// ═══════════════════════════════════════
+//  CONFIG  — update API_BASE after deploy
+// ═══════════════════════════════════════
+const API_BASE = window.TOBACCONET_API || 'https://tobacconet-api.onrender.com';
+
+let token = null;
+let currentUser = null;
+let appData = { warehouses:[], subscriptions:[], providers:[], settings:{} };
+let selectedUserId = null;
+let pinBuffer = '';
+let users = [];
+
+// ═══════════════════════════════════════
+//  API HELPER
+// ═══════════════════════════════════════
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(API_BASE + path, opts);
+  if (res.status === 401) { logout(); throw new Error('Session expired'); }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ═══════════════════════════════════════
+//  LOGIN
+// ═══════════════════════════════════════
+async function initLogin() {
+  try {
+    users = await api('GET', '/api/users');
+    document.getElementById('login-loading').style.display = 'none';
+    document.getElementById('login-body').style.display = 'block';
+    buildLoginUI();
+  } catch {
+    document.getElementById('login-loading').innerHTML = '<span style="color:#f05050;">Cannot reach server.<br>Check API_BASE in index.html.</span>';
+  }
+}
+
+function buildLoginUI() {
+  const grid = document.getElementById('user-grid');
+  grid.innerHTML = users.map(u => `
+    <div class="user-card" id="uc-${u.id}" onclick="selectUser('${u.id}')">
+      <div class="user-avatar" style="background:${u.color}22;border:2px solid ${u.color};color:${u.color};">${u.initials}</div>
+      <div class="user-name">${u.name}</div>
+      <div class="user-role">${u.role}</div>
+    </div>`).join('');
+  const kp = document.getElementById('pin-keypad');
+  kp.innerHTML = ['1','2','3','4','5','6','7','8','9','⌫','0','↵'].map(k => `<button class="pin-key" onclick="pinPress('${k}')">${k}</button>`).join('');
+}
+
+function selectUser(id) {
+  selectedUserId = id; pinBuffer = ''; updatePinDots();
+  document.querySelectorAll('.user-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('uc-' + id).classList.add('selected');
+  const u = users.find(x => x.id === id);
+  document.getElementById('selected-user-label').textContent = `Enter PIN for ${u.name}`;
+  document.getElementById('pin-error').textContent = '';
+}
+
+function pinPress(k) {
+  if (!selectedUserId) { document.getElementById('pin-error').textContent = 'Select a user first.'; return; }
+  if (k === '⌫') { pinBuffer = pinBuffer.slice(0,-1); updatePinDots(); return; }
+  if (k === '↵') { submitPin(); return; }
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += k; updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(submitPin, 200);
+}
+
+function updatePinDots() {
+  for (let i=0; i<4; i++) document.getElementById('d'+i).classList.toggle('filled', i < pinBuffer.length);
+}
+
+async function submitPin() {
+  document.getElementById('pin-error').textContent = '';
+  try {
+    const res = await api('POST', '/api/auth/login', { user_id: selectedUserId, pin: pinBuffer });
+    token = res.token;
+    currentUser = { id: res.user_id, name: res.name, role: res.role };
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('current-user-display').textContent = `👤 ${res.name}`;
+    document.getElementById('sb-user').textContent = `User: ${res.name} (${res.role})`;
+    await loadAll();
+    startClock();
+  } catch {
+    document.getElementById('pin-error').textContent = '✗ Incorrect PIN. Try again.';
+    pinBuffer = ''; updatePinDots();
+    setTimeout(() => document.getElementById('pin-error').textContent = '', 2500);
+  }
+}
+
+async function logout() {
+  try { if (token) await api('POST', '/api/auth/logout'); } catch {}
+  token = null; currentUser = null; selectedUserId = null; pinBuffer = '';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-loading').style.display = 'none';
+  document.getElementById('login-body').style.display = 'block';
+  document.getElementById('current-user-display').textContent = '';
+  updatePinDots();
+  document.querySelectorAll('.user-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('selected-user-label').textContent = 'Select a user above';
+}
+
+// ═══════════════════════════════════════
+//  LOAD ALL DATA
+// ═══════════════════════════════════════
+async function loadAll() {
+  try {
+    const [wh, subs, provs, settings] = await Promise.all([
+      api('GET', '/api/warehouses'),
+      api('GET', '/api/subscriptions'),
+      api('GET', '/api/providers'),
+      api('GET', '/api/settings'),
+    ]);
+    appData = { warehouses: wh, subscriptions: subs, providers: provs, settings };
+    const gse = document.getElementById('global-season-end');
+    if (gse && !gse.value) gse.value = settings.season_end_default || '2026-06-30';
+    document.getElementById('sb-season-label').textContent = settings.season_label || '—';
+    document.getElementById('sidebar-season-status').textContent = `${monthsUntil(settings.season_end_default)} mo remaining`;
+    document.getElementById('finance-email-display').textContent = settings.finance_email || '—';
+    document.getElementById('reminder-days-display').textContent = `${settings.reminder_days || 7} days`;
+    renderAll();
+    checkReminders();
+  } catch(e) { toast('Failed to load data: ' + e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════
+function getWh(id)  { return appData.warehouses.find(w => w.id === id) || {}; }
+function getISP(id) { return appData.providers.find(p => p.id === id) || {}; }
+function daysUntil(s) { if (!s) return 9999; const d=new Date(s),n=new Date(); n.setHours(0,0,0,0); d.setHours(0,0,0,0); return Math.round((d-n)/86400000); }
+function subStatus(s) { const d=daysUntil(s.expiry_date); if (d<0) return 'expired'; if (d<=3) return 'urgent'; if (d<=7) return 'warn'; return 'ok'; }
+function statusBadge(st) { const m={ok:'badge-ok',warn:'badge-warn',urgent:'badge-urgent',expired:'badge-expired'}; const l={ok:'Active',warn:'Expiring Soon',urgent:'Urgent!',expired:'Expired'}; return `<span class="badge ${m[st]||'badge-ok'}">${l[st]||st}</span>`; }
+function fmtDate(s) { if (!s) return '—'; return new Date(s+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+function fmtCurrency(n) { return `$${parseFloat(n||0).toFixed(2)}`; }
+function monthsUntil(s) { if (!s) return 0; const e=new Date(s),n=new Date(); return Math.max(0,(e.getFullYear()-n.getFullYear())*12+(e.getMonth()-n.getMonth())); }
+
+// ═══════════════════════════════════════
+//  RENDER ALL
+// ═══════════════════════════════════════
+function renderAll() {
+  renderDashboard();
+  renderWarehousesPage();
+  renderSubscriptionsPage();
+  renderBudgetPage();
+  renderRemindersPage();
+  renderProvidersPage();
+  updateStatusBar();
+  updateSubFilterWh();
+}
+
+// ═══════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════
+function renderDashboard() {
+  const subs = appData.subscriptions;
+  const totalMonthly = subs.reduce((a,s) => a+parseFloat(s.price||0), 0);
+  const expiring = subs.filter(s => { const d=daysUntil(s.expiry_date); return d>=0&&d<=7; });
+  const expired  = subs.filter(s => daysUntil(s.expiry_date)<0);
+  const urgent   = subs.filter(s => { const d=daysUntil(s.expiry_date); return d>=0&&d<=3; });
+
+  document.getElementById('summary-cards').innerHTML = `
+    <div class="summary-card">       <div class="summary-label">Warehouses</div>   <div class="summary-value">${appData.warehouses.length}</div>  <div class="summary-sub">active locations</div></div>
+    <div class="summary-card info">  <div class="summary-label">Subscriptions</div><div class="summary-value">${subs.length}</div>              <div class="summary-sub">total WiFi plans</div></div>
+    <div class="summary-card warn">  <div class="summary-label">Monthly Spend</div><div class="summary-value">${fmtCurrency(totalMonthly)}</div><div class="summary-sub">USD/month</div></div>
+    <div class="summary-card warn">  <div class="summary-label">Expiring ≤7d</div> <div class="summary-value">${expiring.length}</div>           <div class="summary-sub">need payment</div></div>
+    <div class="summary-card danger"><div class="summary-label">Urgent ≤3d</div>   <div class="summary-value">${urgent.length}</div>            <div class="summary-sub">critical action</div></div>
+    <div class="summary-card danger"><div class="summary-label">Expired</div>       <div class="summary-value">${expired.length}</div>           <div class="summary-sub">overdue</div></div>`;
+
+  const upcoming = [...subs].filter(s => { const d=daysUntil(s.expiry_date); return d>=-7&&d<=30; }).sort((a,b)=>new Date(a.expiry_date)-new Date(b.expiry_date)).slice(0,8);
+  document.getElementById('upcoming-expirations').innerHTML = upcoming.length ? upcoming.map(s => {
+    const wh=getWh(s.warehouse_id); const isp=getISP(s.provider_id); const d=daysUntil(s.expiry_date); const st=subStatus(s);
+    const col=st==='expired'?'#f05050':st==='urgent'?'#ff7070':st==='warn'?'#f0a500':'#4caf6e';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(45,74,53,0.3);">
+      <div style="width:36px;text-align:center;font-size:12px;font-weight:700;color:${col}">${d<0?'EXP':d+'d'}</div>
+      <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--xl-text)">${wh.code||'?'} — ${wh.name||'?'}</div>
+      <div style="font-size:10px;color:var(--xl-text-muted)">${isp.name||'?'} · ${s.plan_type}</div></div>
+      <div style="font-size:11px;color:var(--xl-text-dim)">${fmtCurrency(s.price)}/mo</div>
+      ${statusBadge(st)}</div>`;
+  }).join('') : '<div class="empty-state">✅ No upcoming expirations</div>';
+
+  const byWh = {};
+  subs.forEach(s => { byWh[s.warehouse_id]=(byWh[s.warehouse_id]||0)+parseFloat(s.price||0); });
+  const maxC = Math.max(...Object.values(byWh), 1);
+  document.getElementById('cost-chart').innerHTML = Object.entries(byWh).map(([wid,c]) => {
+    const wh=getWh(parseInt(wid)); const pct=Math.round(c/maxC*100);
+    return `<div class="budget-bar-row">
+      <div class="budget-bar-label">${wh.code||wid}</div>
+      <div class="budget-bar-track"><div class="budget-bar-fill" style="width:${pct}%;background:var(--xl-accent);color:#0d1a12;">${pct>15?fmtCurrency(c):''}</div></div>
+      <div class="budget-bar-val">${fmtCurrency(c)}</div></div>`;
+  }).join('');
+
+  const ths = ['#','Code','Warehouse','ISP','Plan','$/mo','Expiry','Pay By','Status'];
+  document.querySelector('#dash-table thead tr').innerHTML = ths.map((h,i)=>`<th${i===0?' class="row-num"':''}>${h}</th>`).join('');
+  document.querySelector('#dash-table tbody').innerHTML = subs.map((s,i) => {
+    const wh=getWh(s.warehouse_id); const isp=getISP(s.provider_id); const st=subStatus(s); const d=daysUntil(s.expiry_date);
+    const dc=d<0?'text-red':d<=7?'text-gold':'text-green';
+    return `<tr onclick="showPage('subscriptions')">
+      <td class="row-num">${i+1}</td><td class="fw-bold text-green">${wh.code||'?'}</td><td>${wh.name||'?'}</td>
+      <td class="text-dim">${isp.name||'?'}</td><td>${s.plan_type}</td><td class="fw-bold">${fmtCurrency(s.price)}</td>
+      <td class="${dc} fw-bold">${fmtDate(s.expiry_date)}</td><td class="text-dim">${fmtDate(s.pay_by_date)}</td>
+      <td>${statusBadge(st)}</td></tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+//  WAREHOUSES
+// ═══════════════════════════════════════
+function renderWarehousesPage() {
+  const q = (document.getElementById('wh-search')||{}).value||'';
+  let list = appData.warehouses;
+  if (q) list = list.filter(w => [w.code,w.name,w.address,getISP(w.provider_id).name||''].join(' ').toLowerCase().includes(q.toLowerCase()));
+  document.getElementById('wh-count').textContent = `${list.length} of ${appData.warehouses.length}`;
+  document.getElementById('wh-tbody').innerHTML = list.length ? list.map((w,i) => {
+    const isp=getISP(w.provider_id); const wSubs=appData.subscriptions.filter(s=>s.warehouse_id===w.id);
+    const hasExpired=wSubs.some(s=>daysUntil(s.expiry_date)<0); const hasUrgent=wSubs.some(s=>{const d=daysUntil(s.expiry_date);return d>=0&&d<=7;});
+    const stDot=hasExpired?'#f05050':hasUrgent?'#f0a500':'#4caf6e';
+    return `<tr>
+      <td class="row-num">${i+1}</td><td class="fw-bold text-green">${w.code}</td><td>${w.name}</td>
+      <td class="text-dim" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${w.address||'—'}</td>
+      <td>${isp.name||'—'}</td><td class="text-dim">${w.contact||'—'}</td>
+      <td><span class="text-green fw-bold">${wSubs.length}</span> plans</td>
+      <td><span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:${stDot};display:inline-block;"></span>${hasExpired?'<span class="text-red">Expired</span>':hasUrgent?'<span class="text-gold">Attention</span>':'<span class="text-green">OK</span>'}</span></td>
+      <td>
+        <button class="ribbon-btn" onclick="openAddWarehouse(${w.id})" style="font-size:10px;padding:2px 7px;">✏</button>
+        <button class="ribbon-btn danger" onclick="deleteWarehouse(${w.id})" style="font-size:10px;padding:2px 7px;">🗑</button>
+      </td></tr>`;
+  }).join('') : `<tr><td colspan="9" class="empty-state">No warehouses found.</td></tr>`;
+}
+
+// ═══════════════════════════════════════
+//  SUBSCRIPTIONS
+// ═══════════════════════════════════════
+function updateSubFilterWh() {
+  const sel = document.getElementById('sub-filter-wh');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All Warehouses</option>' + appData.warehouses.map(w=>`<option value="${w.id}" ${cur==w.id?'selected':''}>${w.code} — ${w.name}</option>`).join('');
+}
+
+function renderSubscriptionsPage() {
+  const filterWh = (document.getElementById('sub-filter-wh')||{}).value||'';
+  const filterSt = (document.getElementById('sub-filter-status')||{}).value||'';
+  let subs = appData.subscriptions;
+  if (filterWh) subs = subs.filter(s => s.warehouse_id == filterWh);
+  if (filterSt) subs = subs.filter(s => subStatus(s) === filterSt);
+  document.getElementById('sub-tbody').innerHTML = subs.length ? subs.map((s,i) => {
+    const wh=getWh(s.warehouse_id); const isp=getISP(s.provider_id); const st=subStatus(s); const d=daysUntil(s.expiry_date);
+    const dc=d<0?'text-red':d<=7?'text-gold':'text-green';
+    return `<tr>
+      <td class="row-num">${i+1}</td>
+      <td><span class="fw-bold text-green">${wh.code||'?'}</span><br><span style="font-size:10px;color:var(--xl-text-muted)">${wh.name||''}</span></td>
+      <td class="text-dim">${isp.name||'—'}</td><td>${s.plan_type}</td>
+      <td class="fw-bold text-green">${fmtCurrency(s.price)}</td>
+      <td class="${dc} fw-bold">${fmtDate(s.expiry_date)}</td>
+      <td class="text-dim">${fmtDate(s.pay_by_date)}</td>
+      <td><span class="badge badge-seasonal">${fmtDate(s.season_end_date)}</span></td>
+      <td class="${dc} fw-bold">${d<0?'<span class="text-red">Overdue</span>':d+'d'}</td>
+      <td>${statusBadge(st)}</td>
+      <td>
+        <button class="ribbon-btn" onclick="openAddSubscription(${s.id})" style="font-size:10px;padding:2px 7px;">✏</button>
+        <button class="ribbon-btn danger" onclick="deleteSubscription(${s.id})" style="font-size:10px;padding:2px 7px;">🗑</button>
+      </td></tr>`;
+  }).join('') : `<tr><td colspan="11" class="empty-state">No subscriptions found.</td></tr>`;
+}
+
+// ═══════════════════════════════════════
+//  BUDGET
+// ═══════════════════════════════════════
+function renderBudgetPage() {
+  const subs = appData.subscriptions; const now = new Date(); now.setHours(0,0,0,0);
+  let tM=0, tR=0, tY=0;
+  const rows = subs.map((s,i) => {
+    const wh=getWh(s.warehouse_id); const isp=getISP(s.provider_id);
+    const monthly=parseFloat(s.price||0);
+    const sEnd=s.season_end_date||appData.settings.season_end_default||'2026-06-30';
+    const rem=monthsUntil(sEnd); const remaining=monthly*rem;
+    const start=new Date((s.start_date||'2024-01-01')+'T00:00:00');
+    const elapsed=Math.max(0,Math.round((now-start)/(30.44*86400000)));
+    const ytd=monthly*elapsed; const pct=Math.min(100,rem<=0?100:Math.round(elapsed/(elapsed+rem)*100));
+    tM+=monthly; tR+=remaining; tY+=ytd;
+    return `<tr>
+      <td class="row-num">${i+1}</td>
+      <td><span class="fw-bold text-green">${wh.code||'?'}</span><br><span style="font-size:10px;color:var(--xl-text-muted)">${wh.name||''}</span></td>
+      <td class="text-dim">${isp.name||'—'}</td>
+      <td class="fw-bold text-green">${fmtCurrency(monthly)}/mo</td>
+      <td><span class="badge badge-seasonal">${fmtDate(sEnd)}</span></td>
+      <td class="fw-bold">${rem} mo</td>
+      <td class="fw-bold text-gold">${fmtCurrency(remaining)}</td>
+      <td class="text-dim">${fmtCurrency(ytd)}</td>
+      <td><div style="display:flex;align-items:center;gap:6px;">
+        <div class="progress-bar" style="width:80px"><div class="progress-fill ${pct>85?'danger':pct>60?'warn':'ok'}" style="width:${pct}%"></div></div>
+        <span style="font-size:10px;color:var(--xl-text-muted)">${pct}%</span>
+      </div></td></tr>`;
+  });
+  document.getElementById('budget-tbody').innerHTML = rows.join('') || `<tr><td colspan="9" class="empty-state">No subscriptions.</td></tr>`;
+  document.getElementById('budget-total-monthly').innerHTML   = `<span class="text-green fw-bold">Monthly: ${fmtCurrency(tM)}</span>`;
+  document.getElementById('budget-total-remaining').innerHTML = `<span class="text-gold fw-bold">Season Remaining: ${fmtCurrency(tR)}</span>`;
+  document.getElementById('budget-total-ytd').innerHTML       = `<span class="text-dim">YTD Spend: ${fmtCurrency(tY)}</span>`;
+  const sm = monthsUntil(appData.settings.season_end_default);
+  document.getElementById('budget-summary').innerHTML = `
+    <div class="summary-card">       <div class="summary-label">Monthly Spend</div><div class="summary-value">${fmtCurrency(tM)}</div>            <div class="summary-sub">all subscriptions</div></div>
+    <div class="summary-card warn">  <div class="summary-label">Season Remaining</div><div class="summary-value">${fmtCurrency(tR)}</div>        <div class="summary-sub">${sm} months left</div></div>
+    <div class="summary-card info">  <div class="summary-label">YTD Spend</div><div class="summary-value">${fmtCurrency(tY)}</div>               <div class="summary-sub">estimated</div></div>
+    <div class="summary-card">       <div class="summary-label">Full Season (12mo)</div><div class="summary-value">${fmtCurrency(tM*12)}</div>    <div class="summary-sub">projection</div></div>`;
+  const byWh={};
+  subs.forEach(s=>{byWh[s.warehouse_id]=(byWh[s.warehouse_id]||0)+parseFloat(s.price||0);});
+  const maxC=Math.max(...Object.values(byWh),1);
+  document.getElementById('budget-bar-chart').innerHTML = Object.entries(byWh).map(([wid,c])=>{
+    const wh=getWh(parseInt(wid)); const pct=Math.round(c/maxC*100); const rem=monthsUntil(appData.settings.season_end_default);
+    return `<div class="budget-bar-row">
+      <div class="budget-bar-label">${wh.code||wid} — ${(wh.name||'').split(' ')[0]}</div>
+      <div class="budget-bar-track"><div class="budget-bar-fill" style="width:${pct}%;background:var(--xl-accent);color:#0d1a12;">${pct>20?fmtCurrency(c*rem)+' rem':''}</div></div>
+      <div class="budget-bar-val text-green fw-bold">${fmtCurrency(c)}/mo</div></div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+//  REMINDERS
+// ═══════════════════════════════════════
+function renderRemindersPage() {
+  const subs = appData.subscriptions;
+  const groups = {expired:[],urgent:[],warn:[],ok:[]};
+  subs.forEach(s => groups[subStatus(s)].push(s));
+  let html = '';
+  if (groups.expired.length) html += `<div class="alert-item danger"><div class="alert-icon">🔴</div><div><div class="alert-title">EXPIRED — Immediate Action (${groups.expired.length})</div>${groups.expired.map(s=>{const wh=getWh(s.warehouse_id);const isp=getISP(s.provider_id);return `<div class="alert-text">• ${wh.code} ${wh.name} — ${isp.name} (${s.plan_type}) — Expired: ${fmtDate(s.expiry_date)} | ${fmtCurrency(s.price)}</div>`;}).join('')}</div></div>`;
+  if (groups.urgent.length) html += `<div class="alert-item danger"><div class="alert-icon">🟠</div><div><div class="alert-title">URGENT — Expiring within 3 days (${groups.urgent.length})</div>${groups.urgent.map(s=>{const wh=getWh(s.warehouse_id);const isp=getISP(s.provider_id);const d=daysUntil(s.expiry_date);return `<div class="alert-text">• ${wh.code} ${wh.name} — ${isp.name} (${s.plan_type}) — ${d} day(s): ${fmtDate(s.expiry_date)} | Pay By: ${fmtDate(s.pay_by_date)} | ${fmtCurrency(s.price)}</div>`;}).join('')}</div></div>`;
+  if (groups.warn.length)   html += `<div class="alert-item warn"><div class="alert-icon">🟡</div><div><div class="alert-title">EXPIRING SOON — Within 7 days (${groups.warn.length})</div>${groups.warn.map(s=>{const wh=getWh(s.warehouse_id);const isp=getISP(s.provider_id);const d=daysUntil(s.expiry_date);return `<div class="alert-text">• ${wh.code} ${wh.name} — ${isp.name} (${s.plan_type}) — ${d} days | Pay By: ${fmtDate(s.pay_by_date)} | ${fmtCurrency(s.price)}</div>`;}).join('')}</div></div>`;
+  if (!groups.expired.length && !groups.urgent.length && !groups.warn.length) html += `<div class="alert-item info"><div class="alert-icon">✅</div><div><div class="alert-title">All subscriptions are current</div><div class="alert-text">No action required.</div></div></div>`;
+  document.getElementById('alert-panel').innerHTML = html;
+}
+
+function checkReminders() {
+  const expired = appData.subscriptions.filter(s=>daysUntil(s.expiry_date)<0);
+  const urgent  = appData.subscriptions.filter(s=>{const d=daysUntil(s.expiry_date);return d>=0&&d<=3;});
+  if (expired.length) toast(`${expired.length} subscription(s) EXPIRED! Check Reminders.`, 'error', 6000);
+  else if (urgent.length) toast(`${urgent.length} subscription(s) expiring within 3 days!`, 'warn', 5000);
+}
+
+// ═══════════════════════════════════════
+//  PROVIDERS
+// ═══════════════════════════════════════
+function renderProvidersPage() {
+  document.getElementById('prov-tbody').innerHTML = appData.providers.map((p,i) => {
+    const cnt = appData.subscriptions.filter(s=>s.provider_id===p.id).length;
+    return `<tr>
+      <td class="row-num">${i+1}</td><td class="fw-bold text-green">${p.name}</td>
+      <td class="text-dim">${p.contact||'—'}</td><td>${p.phone||'—'}</td>
+      <td class="text-dim">${p.email||'—'}</td><td class="text-dim">${p.website||'—'}</td>
+      <td><span class="badge badge-active">${cnt} plan${cnt!==1?'s':''}</span></td>
+      <td>
+        <button class="ribbon-btn" onclick="openAddProvider(${p.id})" style="font-size:10px;padding:2px 7px;">✏</button>
+        <button class="ribbon-btn danger" onclick="deleteProvider(${p.id})" style="font-size:10px;padding:2px 7px;">🗑</button>
+      </td></tr>`;
+  }).join('') || `<tr><td colspan="8" class="empty-state">No providers.</td></tr>`;
+}
+
+// ═══════════════════════════════════════
+//  STATUS BAR
+// ═══════════════════════════════════════
+function updateStatusBar() {
+  const subs=appData.subscriptions;
+  const expiring=subs.filter(s=>{const d=daysUntil(s.expiry_date);return d>=0&&d<=7;}).length;
+  const total=subs.reduce((a,s)=>a+parseFloat(s.price||0),0);
+  document.getElementById('sb-warehouses').textContent=`Warehouses: ${appData.warehouses.length}`;
+  document.getElementById('sb-subs').textContent=`Subscriptions: ${subs.length}`;
+  document.getElementById('sb-expiring').textContent=`Expiring ≤7d: ${expiring}`;
+  document.getElementById('sb-total').textContent=`Monthly: ${fmtCurrency(total)}`;
+}
+
+// ═══════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.section-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.toggle('active',i.dataset.page===id));
+  document.querySelectorAll('.sheet-tab').forEach((t,idx)=>{ const pages=['dashboard','warehouses','subscriptions','budget','reminders','providers']; t.classList.toggle('active',pages[idx]===id); });
+  const fx={dashboard:'=TOBACCONET.WAREHOUSE_SUBSCRIPTIONS()',warehouses:'=FILTER(Warehouses,Active=TRUE)',subscriptions:'=SORT(Subscriptions,ExpiryDate,ASC)',budget:'=SUMPRODUCT(Monthly,Months_Remaining)',reminders:'=IF(Days<=7,"ALERT","OK")',providers:'=VLOOKUP(ISP_ID,Providers,2,FALSE)'};
+  document.getElementById('formula-display').textContent=fx[id]||'';
+  document.getElementById('cell-ref-display').value={dashboard:'A1',warehouses:'B2',subscriptions:'C3',budget:'D4',reminders:'E5',providers:'F6'}[id]||'A1';
+  if (id==='budget') renderBudgetPage();
+}
+
+function filterDashTable() {
+  const q=document.getElementById('global-search').value.toLowerCase();
+  document.querySelectorAll('#dash-table tbody tr').forEach(tr=>{ tr.style.display=tr.textContent.toLowerCase().includes(q)?'':'none'; });
+}
+
+// ═══════════════════════════════════════
+//  MODAL HELPERS
+// ═══════════════════════════════════════
+function openModal(title, body, footer) {
+  document.getElementById('modal-container').innerHTML = `
+    <div class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header"><span class="modal-title">${title}</span><button class="modal-close" onclick="closeModal()">✕</button></div>
+        <div class="modal-body">${body}</div>
+        <div class="modal-footer">${footer}</div>
+      </div></div>`;
+}
+function closeModal(e) { if (e&&e.target!==e.currentTarget) return; document.getElementById('modal-container').innerHTML=''; }
+
+// ═══════════════════════════════════════
+//  WAREHOUSE CRUD
+// ═══════════════════════════════════════
+function openAddWarehouse(id) {
+  const w = id ? appData.warehouses.find(x=>x.id===id) : null;
+  const ispOpts = appData.providers.map(p=>`<option value="${p.id}" ${w&&w.provider_id===p.id?'selected':''}>${p.name}</option>`).join('');
+  openModal(id?'✏ Edit Warehouse':'🏭 Add Warehouse',
+    `<div class="form-grid">
+      <div class="form-section-label">Warehouse Details</div>
+      <div class="form-group"><label>Code *</label><input id="f-code" value="${w?w.code:''}" placeholder="WH09"></div>
+      <div class="form-group"><label>Name *</label><input id="f-name" value="${w?w.name:''}" placeholder="Warehouse Name"></div>
+      <div class="form-group full"><label>Address</label><input id="f-addr" value="${w?w.address||'':''}" placeholder="123 Road, City"></div>
+      <div class="form-group"><label>ISP Provider</label><select id="f-isp"><option value="">Select ISP</option>${ispOpts}</select></div>
+      <div class="form-group"><label>Contact</label><input id="f-contact" value="${w?w.contact||'':''}" placeholder="T: +263 …"></div>
+      <div class="form-group full"><label>Notes</label><textarea id="f-notes">${w?w.notes||'':''}</textarea></div>
+    </div>`,
+    `<button class="ribbon-btn" onclick="closeModal()">Cancel</button>
+     <button class="ribbon-btn primary" onclick="saveWarehouse(${id||0})">💾 ${id?'Update':'Add'}</button>`);
+}
+
+async function saveWarehouse(id) {
+  const code=document.getElementById('f-code').value.trim();
+  const name=document.getElementById('f-name').value.trim();
+  if (!code||!name) { toast('Code and Name are required','error'); return; }
+  const payload={code,name,address:document.getElementById('f-addr').value.trim(),provider_id:parseInt(document.getElementById('f-isp').value)||null,contact:document.getElementById('f-contact').value.trim(),notes:document.getElementById('f-notes').value.trim()};
+  try {
+    if (id) await api('PUT',`/api/warehouses/${id}`,payload); else await api('POST','/api/warehouses',payload);
+    await loadAll(); closeModal(); toast(id?'Warehouse updated':'Warehouse added');
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+async function deleteWarehouse(id) {
+  if (!confirm('Delete this warehouse and all its subscriptions?')) return;
+  try { await api('DELETE',`/api/warehouses/${id}`); await loadAll(); toast('Warehouse deleted','warn'); } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+// ═══════════════════════════════════════
+//  SUBSCRIPTION CRUD
+// ═══════════════════════════════════════
+function openAddSubscription(id) {
+  const s = id ? appData.subscriptions.find(x=>x.id===id) : null;
+  const whOpts  = appData.warehouses.map(w=>`<option value="${w.id}" ${s&&s.warehouse_id===w.id?'selected':''}>${w.code} — ${w.name}</option>`).join('');
+  const ispOpts = appData.providers.map(p=>`<option value="${p.id}" ${s&&s.provider_id===p.id?'selected':''}>${p.name}</option>`).join('');
+  const today = new Date().toISOString().split('T')[0];
+  openModal(id?'✏ Edit Subscription':'📶 Add Subscription',
+    `<div class="form-grid">
+      <div class="form-section-label">Subscription Details</div>
+      <div class="form-group"><label>Warehouse *</label><select id="fs-wh"><option value="">Select</option>${whOpts}</select></div>
+      <div class="form-group"><label>ISP Provider *</label><select id="fs-isp"><option value="">Select</option>${ispOpts}</select></div>
+      <div class="form-group"><label>Plan Type *</label><input id="fs-plan" value="${s?s.plan_type:''}" placeholder="Fibre 100Mbps"></div>
+      <div class="form-group"><label>Monthly Price (USD)</label><input id="fs-price" type="number" step="0.01" value="${s?s.price:''}" placeholder="150.00"></div>
+      <hr class="form-divider">
+      <div class="form-section-label">Dates</div>
+      <div class="form-group"><label>Next Expiry *</label><input id="fs-expiry" type="date" value="${s?s.expiry_date||today:today}"></div>
+      <div class="form-group"><label>Pay By</label><input id="fs-payby" type="date" value="${s?s.pay_by_date||today:today}"></div>
+      <div class="form-group"><label>Season End</label><input id="fs-season" type="date" value="${s?s.season_end_date||appData.settings.season_end_default:appData.settings.season_end_default||'2026-06-30'}"></div>
+      <div class="form-group"><label>Start Date</label><input id="fs-start" type="date" value="${s?s.start_date||today:today}"></div>
+    </div>`,
+    `<button class="ribbon-btn" onclick="closeModal()">Cancel</button>
+     <button class="ribbon-btn primary" onclick="saveSubscription(${id||0})">💾 ${id?'Update':'Add'}</button>`);
+}
+
+async function saveSubscription(id) {
+  const whId=document.getElementById('fs-wh').value;
+  const ispId=document.getElementById('fs-isp').value;
+  const planType=document.getElementById('fs-plan').value.trim();
+  const expiry=document.getElementById('fs-expiry').value;
+  if (!whId||!ispId||!planType||!expiry) { toast('Warehouse, ISP, Plan and Expiry required','error'); return; }
+  const payload={warehouse_id:parseInt(whId),provider_id:parseInt(ispId),plan_type:planType,price:parseFloat(document.getElementById('fs-price').value)||0,expiry_date:expiry,pay_by_date:document.getElementById('fs-payby').value,season_end_date:document.getElementById('fs-season').value,start_date:document.getElementById('fs-start').value};
+  try {
+    if (id) await api('PUT',`/api/subscriptions/${id}`,payload); else await api('POST','/api/subscriptions',payload);
+    await loadAll(); closeModal(); toast(id?'Subscription updated':'Subscription added');
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+async function deleteSubscription(id) {
+  if (!confirm('Delete this subscription?')) return;
+  try { await api('DELETE',`/api/subscriptions/${id}`); await loadAll(); toast('Subscription deleted','warn'); } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+// ═══════════════════════════════════════
+//  PROVIDER CRUD
+// ═══════════════════════════════════════
+function openAddProvider(id) {
+  const p = id ? appData.providers.find(x=>x.id===id) : null;
+  openModal(id?'✏ Edit Provider':'🌐 Add ISP Provider',
+    `<div class="form-grid">
+      <div class="form-section-label">Provider Details</div>
+      <div class="form-group full"><label>Name *</label><input id="fp-name" value="${p?p.name:''}" placeholder="TelOne Zimbabwe"></div>
+      <div class="form-group"><label>Contact Person</label><input id="fp-contact" value="${p?p.contact||'':''}" placeholder="Sales Desk"></div>
+      <div class="form-group"><label>Phone</label><input id="fp-phone" value="${p?p.phone||'':''}" placeholder="+263 4 700000"></div>
+      <div class="form-group"><label>Email</label><input id="fp-email" value="${p?p.email||'':''}" placeholder="business@isp.co.zw"></div>
+      <div class="form-group"><label>Website</label><input id="fp-web" value="${p?p.website||'':''}" placeholder="www.isp.co.zw"></div>
+    </div>`,
+    `<button class="ribbon-btn" onclick="closeModal()">Cancel</button>
+     <button class="ribbon-btn primary" onclick="saveProvider(${id||0})">💾 ${id?'Update':'Add'}</button>`);
+}
+
+async function saveProvider(id) {
+  const name=document.getElementById('fp-name').value.trim();
+  if (!name) { toast('Name is required','error'); return; }
+  const payload={name,contact:document.getElementById('fp-contact').value.trim(),phone:document.getElementById('fp-phone').value.trim(),email:document.getElementById('fp-email').value.trim(),website:document.getElementById('fp-web').value.trim()};
+  try {
+    if (id) await api('PUT',`/api/providers/${id}`,payload); else await api('POST','/api/providers',payload);
+    await loadAll(); closeModal(); toast(id?'Provider updated':'Provider added');
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+async function deleteProvider(id) {
+  if (!confirm('Delete this provider?')) return;
+  try { await api('DELETE',`/api/providers/${id}`); await loadAll(); toast('Provider deleted','warn'); } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+// ═══════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════
+function openSettings() {
+  const s=appData.settings;
+  openModal('⚙ Settings',
+    `<div class="form-grid">
+      <div class="form-section-label">Finance & Notifications</div>
+      <div class="form-group full"><label>Finance Email</label><input id="set-email" value="${s.finance_email||''}" placeholder="finance@tobaccoauction.co.zw"></div>
+      <div class="form-group"><label>Reminder Threshold (days)</label><input id="set-days" type="number" min="1" max="30" value="${s.reminder_days||7}"></div>
+      <div class="form-group"><label>Currency</label><select id="set-cur"><option value="USD" ${s.currency==='USD'?'selected':''}>USD</option><option value="ZWL" ${s.currency==='ZWL'?'selected':''}>ZWL</option></select></div>
+      <hr class="form-divider">
+      <div class="form-section-label">Season</div>
+      <div class="form-group"><label>Season Label</label><input id="set-season" value="${s.season_label||'2025/2026'}"></div>
+      <div class="form-group"><label>Default Season End</label><input id="set-sdate" type="date" value="${s.season_end_default||'2026-06-30'}"></div>
+      <hr class="form-divider">
+      <div class="form-section-label">Demo Data</div>
+      <div class="form-group full"><button class="ribbon-btn primary" onclick="seedData()" style="width:100%;">🌱 Load Demo Data (first run only)</button></div>
+    </div>`,
+    `<button class="ribbon-btn" onclick="closeModal()">Cancel</button>
+     <button class="ribbon-btn primary" onclick="saveSettings()">💾 Save Settings</button>`);
+}
+
+async function saveSettings() {
+  try {
+    await api('PUT','/api/settings',{
+      finance_email:document.getElementById('set-email').value.trim(),
+      reminder_days:parseInt(document.getElementById('set-days').value)||7,
+      currency:document.getElementById('set-cur').value,
+      season_label:document.getElementById('set-season').value.trim(),
+      season_end_default:document.getElementById('set-sdate').value,
+    });
+    await loadAll(); closeModal(); toast('Settings saved');
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+async function seedData() {
+  try {
+    const res = await api('POST','/api/seed');
+    if (res.ok) { await loadAll(); closeModal(); toast('Demo data loaded!'); }
+    else toast(res.message,'warn');
+  } catch(e) { toast('Error: '+e.message,'error'); }
+}
+
+// ═══════════════════════════════════════
+//  EMAIL REMINDERS
+// ═══════════════════════════════════════
+function sendReminderEmails() {
+  const subs=appData.subscriptions; const threshold=parseInt(appData.settings.reminder_days||7);
+  const toAlert=subs.filter(s=>daysUntil(s.expiry_date)<=threshold);
+  if (!toAlert.length) { toast('No subscriptions require reminders.'); return; }
+  const finEmail=appData.settings.finance_email||'finance@tobaccoauction.co.zw';
+  const now=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
+  let body=`TobaccoNet WiFi Subscription Payment Reminder\nGenerated: ${now}\n\nThe following subscriptions require your attention:\n\n`;
+  toAlert.forEach(s=>{const wh=getWh(s.warehouse_id);const isp=getISP(s.provider_id);const d=daysUntil(s.expiry_date);body+=`• ${wh.code} — ${wh.name}\n  Provider: ${isp.name} | Plan: ${s.plan_type}\n  Amount: ${fmtCurrency(s.price)} | Expiry: ${fmtDate(s.expiry_date)} | Pay By: ${fmtDate(s.pay_by_date)}\n  Status: ${d<0?'EXPIRED':d+' days remaining'}\n\n`;});
+  body+=`Total due this cycle: ${fmtCurrency(toAlert.reduce((a,s)=>a+parseFloat(s.price||0),0))}\n\nPlease process payments before cut-off dates.\n\nTobaccoNet WiFi Management System`;
+  window.location.href=`mailto:${finEmail}?subject=${encodeURIComponent('[TobaccoNet] WiFi Subscription Reminders — '+now)}&body=${encodeURIComponent(body)}`;
+  toast(`Reminder prepared for ${finEmail} (${toAlert.length} item${toAlert.length!==1?'s':''})`, 'ok', 5000);
+}
+
+// ═══════════════════════════════════════
+//  EXPORT CSV
+// ═══════════════════════════════════════
+function exportCSV() {
+  let csv='Warehouse Code,Warehouse Name,ISP,Plan Type,Monthly Cost,Expiry,Pay By,Season End,Status\n';
+  appData.subscriptions.forEach(s=>{const wh=getWh(s.warehouse_id);const isp=getISP(s.provider_id);csv+=`"${wh.code}","${wh.name}","${isp.name}","${s.plan_type}","${fmtCurrency(s.price)}","${fmtDate(s.expiry_date)}","${fmtDate(s.pay_by_date)}","${fmtDate(s.season_end_date)}","${subStatus(s)}"\n`;});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`tobacconet_${new Date().toISOString().split('T')[0]}.csv`;a.click();
+  toast('Exported as CSV');
+}
+
+// ═══════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════
+function toast(msg, type='ok', duration=3000) {
+  const t=document.getElementById('toast'); const el=document.createElement('div');
+  el.className=`toast-item${type==='error'?' error':type==='warn'?' warn':''}`;
+  el.innerHTML=`${type==='error'?'❌':type==='warn'?'⚠️':'✅'} ${msg}`;
+  t.appendChild(el); setTimeout(()=>el.remove(),duration);
+}
+
+// ═══════════════════════════════════════
+//  CLOCK
+// ═══════════════════════════════════════
+function startClock() {
+  function tick(){
+    const now=new Date();
+    document.getElementById('current-time').textContent=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('dash-date').textContent=now.toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  }
+  tick(); setInterval(tick,1000);
+}
+
+// ═══════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════
+initLogin();
+</script>
+</body>
+</html>
