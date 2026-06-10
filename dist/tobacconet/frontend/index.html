@@ -233,6 +233,9 @@
     <div id="login-loading" style="text-align:center;padding:20px;color:var(--xl-text-muted);font-size:12px;">
       <div class="spinner" style="margin:0 auto 8px;width:24px;height:24px;"></div>
       Connecting to server…
+      <div style="margin-top:8px;font-size:10px;color:var(--xl-text-muted);font-family:monospace;background:var(--xl-surface3);border:1px solid var(--xl-border);border-radius:3px;padding:4px 10px;display:inline-block;">
+        🔗 https://wifi-manager-1.onrender.com
+      </div>
     </div>
     <div id="login-body" style="display:none;">
       <div class="user-select-grid" id="user-grid"></div>
@@ -459,7 +462,7 @@
 // ═══════════════════════════════════════
 //  CONFIG  — update API_BASE after deploy
 // ═══════════════════════════════════════
-const API_BASE = window.TOBACCONET_API || 'https://tobacconet-api.onrender.com';
+const API_BASE = window.TOBACCONET_API || 'https://wifi-manager-1.onrender.com';
 
 let token = null;
 let currentUser = null;
